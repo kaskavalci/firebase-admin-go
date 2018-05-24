@@ -29,15 +29,27 @@ import (
 
 const iidEndpoint = "https://console.firebase.google.com/v1"
 
-var errorCodes = map[int]string{
-	http.StatusBadRequest:          "malformed instance id argument",
-	http.StatusUnauthorized:        "request not authorized",
-	http.StatusForbidden:           "project does not match instance ID or the client does not have sufficient privileges",
-	http.StatusNotFound:            "failed to find the instance id",
-	http.StatusConflict:            "already deleted",
-	http.StatusTooManyRequests:     "request throttled out by the backend server",
-	http.StatusInternalServerError: "internal server error",
-	http.StatusServiceUnavailable:  "backend servers are over capacity",
+// Errors
+var (
+	ErrMalformedID         = errors.New("malformed instance id argument")
+	ErrNotAuthorized       = errors.New("request not authorized")
+	ErrForbidded           = errors.New("project does not match instance ID or the client does not have sufficient privileges")
+	ErrNotFound            = errors.New("failed to find the instance id")
+	ErrAlreadyDeleted      = errors.New("already deleted")
+	ErrTooManyRequests     = errors.New("request throttled out by the backend server")
+	ErrInternalServerError = errors.New("internal server error")
+	ErrServiceUnavailable  = errors.New("backend servers are over capacity")
+)
+
+var errorCodes = map[int]error{
+	http.StatusBadRequest:          ErrMalformedID,
+	http.StatusUnauthorized:        ErrNotAuthorized,
+	http.StatusForbidden:           ErrForbidded,
+	http.StatusNotFound:            ErrNotFound,
+	http.StatusConflict:            ErrAlreadyDeleted,
+	http.StatusTooManyRequests:     ErrTooManyRequests,
+	http.StatusInternalServerError: ErrInternalServerError,
+	http.StatusServiceUnavailable:  ErrServiceUnavailable,
 }
 
 // Client is the interface for the Firebase Instance ID service.
@@ -84,8 +96,8 @@ func (c *Client) DeleteInstanceID(ctx context.Context, iid string) error {
 		return err
 	}
 
-	if msg, ok := errorCodes[resp.Status]; ok {
-		return fmt.Errorf("instance id %q: %s", iid, msg)
+	if err, ok := errorCodes[resp.Status]; ok {
+		return err
 	}
 	return resp.CheckStatus(http.StatusOK)
 }
